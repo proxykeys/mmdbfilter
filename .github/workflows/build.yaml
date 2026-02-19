@@ -31,33 +31,45 @@ jobs:
       - name: Install geoip CLI
         run: |
           go install -v github.com/Loyalsoldier/geoip@latest
-          
-          # Добавляем GOPATH/bin в GITHUB_PATH для следующих шагов
           echo "$HOME/go/bin" >> $GITHUB_PATH
-          
-          # Проверяем, что geoip установлен
-          echo "GOPATH: $(go env GOPATH)"
-          echo "go bin: $(go env GOPATH)/bin"
-          ls -la "$(go env GOPATH)/bin/geoip"
 
       - name: Build custom MMDB
-        run: geoip convert -c ./config.json
+        run: |
+          geoip convert -c ./config.json
+
+      - name: List output files
+        run: |
+          echo "=== Содержимое output директории ==="
+          ls -la ./output || echo "Директория не существует"
+          echo "=== Проверка MMDB файла ==="
+          ls -la ./output/*.mmdb || echo "MMDB файлы не найдены"
+
+      - name: Generate sha256 checksum
+        shell: bash
+        run: |
+          cd ./output || exit 1
+          # Генерируем checksum только для существующих файлов
+          shopt -s nullglob
+          for file in *.mmdb *.txt; do
+            if [ -f "$file" ]; then
+              sha256sum ${file} > ${file}.sha256sum
+              echo "Создан checksum: ${file}.sha256sum"
+            fi
+          done
+          shopt -u nullglob
 
       - name: Verify mmdb files
         run: |
           cd ./output || exit 1
           go install github.com/maxmind/mmdbverify@latest
+          shopt -s nullglob
           for name in *.mmdb; do
-            $(go env GOPATH)/bin/mmdbverify -file ${name}
+            if [ -f "$name" ]; then
+              $(go env GOPATH)/bin/mmdbverify -file ${name}
+            fi
           done
+          shopt -u nullglob
         continue-on-error: true
-
-      - name: Generate sha256 checksum
-        run: |
-          cd ./output || exit 1
-          for file in *.mmdb *.txt; do
-            [ -f "$file" ] && sha256sum ${file} > ${file}.sha256sum
-          done
 
       - name: Git push assets to "release" branch
         run: |
