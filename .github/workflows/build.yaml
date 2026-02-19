@@ -31,10 +31,17 @@ jobs:
       - name: Install geoip CLI
         run: |
           go install -v github.com/Loyalsoldier/geoip@latest
+          
+          # Добавляем GOPATH/bin в GITHUB_PATH для следующих шагов
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+          
+          # Проверяем, что geoip установлен
+          echo "GOPATH: $(go env GOPATH)"
+          echo "go bin: $(go env GOPATH)/bin"
+          ls -la "$(go env GOPATH)/bin/geoip"
 
       - name: Build custom MMDB
-        run: |
-          geoip convert -c ./config.json
+        run: geoip convert -c ./config.json
 
       - name: Verify mmdb files
         run: |
