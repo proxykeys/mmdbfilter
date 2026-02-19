@@ -1,0 +1,35 @@
+{
+	"input": [
+		{
+			"type": "private",
+			"action": "add"
+		},
+		{
+			"type": "dbipCountryMMDB",
+			"action": "add",
+			"args": {
+				"uri": "https://github.com/Loyalsoldier/geoip/releases/latest/download/dbip-country-lite.mmdb",
+				"wantedList": ["ru"]
+			}
+		},
+		{
+			"type": "clashRuleSet",
+			"action": "add",
+			"args": {
+				"name": "antifilter",
+				"uri": "https://raw.githubusercontent.com/proxykeys/filter/main/release/clash-antifilter-ip.yaml"
+			}
+		}
+	],
+	"output": [
+		{
+			"type": "maxmindMMDB",
+			"action": "output",
+			"args": {
+				"outputDir": "./output",
+				"outputName": "Country.mmdb",
+				"wantedList": ["private", "ru", "antifilter"]
+			}
+		}
+	]
+}
