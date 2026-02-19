@@ -33,10 +33,15 @@ jobs:
           mkdir -p output
           curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/dbip-country-lite.mmdb" -o ./output/dbip-country-lite.mmdb
 
-      - name: Build geoip files (using precompiled binary)
+      - name: Download geoip CLI
         run: |
           curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
           chmod +x ./geoip
+          ls -la ./geoip
+          ./geoip --version
+
+      - name: Build geoip files (using precompiled binary)
+        run: |
           ./geoip convert -c ./config.json
 
       - name: Verify mmdb files
