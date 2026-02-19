@@ -8,7 +8,7 @@
       "type": "maxmindMMDB",
       "action": "add",
       "args": {
-        "uri": "./output/Country-source.mmdb",
+        "uri": "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-asn.mmdb",
         "wantedList": ["ru"]
       }
     },
