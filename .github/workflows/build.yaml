@@ -30,28 +30,10 @@ jobs:
 
       - name: Install geoip CLI
         run: |
-          # Устанавливаем Loyalsoldier/geoip CLI через go install
           go install -v github.com/Loyalsoldier/geoip@latest
-          
-          # Добавляем в PATH
-          echo "$HOME/go/bin" >> $GITHUB_PATH
-
-      - name: Download Country MMDB from Loyalsoldier/geoip
-        run: |
-          mkdir -p output
-          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-asn.mmdb" -o ./output/Country-source.mmdb
-          
-          # Проверяем размер
-          size=$(stat -f %s ./output/Country-source.mmdb 2>/dev/null || echo "0")
-          if [ "$size" -lt 100000 ]; then
-            echo "ОШИБКА: Скачанный файл слишком маленький ($size байт)"
-            exit 1
-          fi
-          echo "Файл скачан: $size байт"
 
       - name: Build custom MMDB
         run: |
-          # Используем установленный geoip CLI
           geoip convert -c ./config.json
 
       - name: Verify mmdb files
