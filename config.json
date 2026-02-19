@@ -5,11 +5,11 @@
       "action": "add"
     },
     {
-      "type": "maxmindMMDB",
+      "type": "text",
       "action": "add",
       "args": {
-        "uri": "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-asn.mmdb",
-        "wantedList": ["ru"]
+        "name": "ru",
+        "uri": "https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release/text/ru.txt"
       }
     },
     {
