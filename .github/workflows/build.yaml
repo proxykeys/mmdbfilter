@@ -35,12 +35,31 @@ jobs:
 
       - name: Download geoip CLI
         run: |
-          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
+          # Пробуем curl с следование редиректов
+          curl -L -s -f "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
+          
+          # Проверяем размер файла
+          if [ ! -s ./geoip ] || [ $(stat -f %s ./geoip) -lt 1000000 ]; then
+            echo "Файл geoip не скачан или поврежден. Пробуем wget..."
+            rm -f ./geoip
+            wget -q "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -O ./geoip
+          fi
+          
+          # Повторная проверка
+          if [ ! -s ./geoip ] || [ $(stat -f %s ./geoip) -lt 1000000 ]; then
+            echo "ОШИБКА: Не удалось скачать geoip CLI"
+            exit 1
+          fi
+          
           chmod +x ./geoip
-          ls -la ./geoip
-          ./geoip --version
+          echo "Размер geoip: $(stat -f %s ./geoip) байт"
+          file ./geoip
 
-      - name: Build geoip files (using precompiled binary)
+      - name: Verify geoip CLI
+        run: |
+          ./geoip version
+
+      - name: Build geoip files
         run: |
           ./geoip convert -c ./config.json
 
