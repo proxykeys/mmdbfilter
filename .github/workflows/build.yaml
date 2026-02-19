@@ -22,46 +22,44 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./go.mod
+
       - name: Set variables
         run: |
           echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
           echo "RELEASE_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
         shell: bash
 
-      - name: Download DB-IP Country MMDB
+      - name: Install geoip CLI from source
+        run: |
+          # Устанавливаем Loyalsoldier/geoip CLI
+          go install -v github.com/Loyalsoldier/geoip@latest
+          
+          # Проверяем установку
+          ~/go/bin/geoip version
+          ~/go/bin/geoip list
+
+      - name: Download Country MMDB from Loyalsoldier/geoip
         run: |
           mkdir -p output
-          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/dbip-country-lite.mmdb" -o ./output/dbip-country-lite.mmdb
-
-      - name: Download geoip CLI
-        run: |
-          # Пробуем curl с следование редиректов
-          curl -L -s -f "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
+          # Скачиваем готовый MMDB файл с последнего релиза
+          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-asn.mmdb" -o ./output/Country-source.mmdb
           
-          # Проверяем размер файла
-          if [ ! -s ./geoip ] || [ $(stat -f %s ./geoip) -lt 1000000 ]; then
-            echo "Файл geoip не скачан или поврежден. Пробуем wget..."
-            rm -f ./geoip
-            wget -q "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -O ./geoip
-          fi
-          
-          # Повторная проверка
-          if [ ! -s ./geoip ] || [ $(stat -f %s ./geoip) -lt 1000000 ]; then
-            echo "ОШИБКА: Не удалось скачать geoip CLI"
+          # Проверяем размер (должен быть > 100KB)
+          size=$(stat -f %s ./output/Country-source.mmdb)
+          echo "Размер скачанного MMDB: $size байт"
+          if [ $size -lt 100000 ]; then
+            echo "ОШИБКА: Скачанный файл слишком маленький!"
             exit 1
           fi
-          
-          chmod +x ./geoip
-          echo "Размер geoip: $(stat -f %s ./geoip) байт"
-          file ./geoip
 
-      - name: Verify geoip CLI
+      - name: Build custom MMDB
         run: |
-          ./geoip version
-
-      - name: Build geoip files
-        run: |
-          ./geoip convert -c ./config.json
+          # Используем установленый geoip CLI
+          ~/go/bin/geoip convert -c ./config.json
 
       - name: Verify mmdb files
         run: |
@@ -81,7 +79,7 @@ jobs:
 
       - name: Git push assets to "release" branch
         run: |
-          cd ./output || exit 1
+          cd output || exit 1
           git init
           git config --local user.name "github-actions[bot]"
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
