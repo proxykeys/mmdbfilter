@@ -22,44 +22,37 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: ./go.mod
-
       - name: Set variables
         run: |
           echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
           echo "RELEASE_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
         shell: bash
 
-      - name: Install geoip CLI from source
+      - name: Install geoip CLI
         run: |
-          # Устанавливаем Loyalsoldier/geoip CLI
+          # Устанавливаем Loyalsoldier/geoip CLI через go install
           go install -v github.com/Loyalsoldier/geoip@latest
           
-          # Проверяем установку
-          ~/go/bin/geoip version
-          ~/go/bin/geoip list
+          # Добавляем в PATH
+          echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Download Country MMDB from Loyalsoldier/geoip
         run: |
           mkdir -p output
-          # Скачиваем готовый MMDB файл с последнего релиза
           curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-asn.mmdb" -o ./output/Country-source.mmdb
           
-          # Проверяем размер (должен быть > 100KB)
-          size=$(stat -f %s ./output/Country-source.mmdb)
-          echo "Размер скачанного MMDB: $size байт"
-          if [ $size -lt 100000 ]; then
-            echo "ОШИБКА: Скачанный файл слишком маленький!"
+          # Проверяем размер
+          size=$(stat -f %s ./output/Country-source.mmdb 2>/dev/null || echo "0")
+          if [ "$size" -lt 100000 ]; then
+            echo "ОШИБКА: Скачанный файл слишком маленький ($size байт)"
             exit 1
           fi
+          echo "Файл скачан: $size байт"
 
       - name: Build custom MMDB
         run: |
-          # Используем установленый geoip CLI
-          ~/go/bin/geoip convert -c ./config.json
+          # Используем установленный geoip CLI
+          geoip convert -c ./config.json
 
       - name: Verify mmdb files
         run: |
