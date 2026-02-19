@@ -1,80 +1,80 @@
 name: Build MMDB
 
 on:
-	workflow_dispatch:
-	schedule:
-		- cron: "0 0 * * 0"
-	push:
-		branches:
-			- main
-		paths-ignore:
-			- ".gitignore"
-			- "LICENSE*"
-			- "*.md"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - ".gitignore"
+      - "LICENSE*"
+      - "*.md"
 
 jobs:
-	build:
-		name: Build MMDB
-		runs-on: ubuntu-latest
-		steps:
-			- name: Checkout codebase
-				uses: actions/checkout@v6
-				with:
-					fetch-depth: 0
+  build:
+    name: Build MMDB
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-			- name: Set variables
-				run: |
-					echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
-					echo "RELEASE_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
-				shell: bash
+      - name: Set variables
+        run: |
+          echo "TAG_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+          echo "RELEASE_NAME=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+        shell: bash
 
-			- name: Download DB-IP Country MMDB
-				run: |
-					mkdir -p output
-					curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/dbip-country-lite.mmdb" -o ./output/dbip-country-lite.mmdb
+      - name: Download DB-IP Country MMDB
+        run: |
+          mkdir -p output
+          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/dbip-country-lite.mmdb" -o ./output/dbip-country-lite.mmdb
 
-			- name: Build geoip files (using precompiled binary)
-				run: |
-					curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
-					chmod +x ./geoip
-					./geoip convert -c ./config.json
+      - name: Build geoip files (using precompiled binary)
+        run: |
+          curl -L -s "https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip-linux-amd64" -o ./geoip
+          chmod +x ./geoip
+          ./geoip convert -c ./config.json
 
-			- name: Verify mmdb files
-				run: |
-					cd ./output || exit 1
-					go install github.com/maxmind/mmdbverify@latest
-					for name in *.mmdb; do
-						$(go env GOPATH)/bin/mmdbverify -file ${name}
-					done
-				continue-on-error: true
+      - name: Verify mmdb files
+        run: |
+          cd ./output || exit 1
+          go install github.com/maxmind/mmdbverify@latest
+          for name in *.mmdb; do
+            $(go env GOPATH)/bin/mmdbverify -file ${name}
+          done
+        continue-on-error: true
 
-			- name: Generate sha256 checksum
-				run: |
-					cd ./output || exit 1
-					for file in *.mmdb *.txt; do
-						[ -f "$file" ] && sha256sum ${file} > ${file}.sha256sum
-					done
+      - name: Generate sha256 checksum
+        run: |
+          cd ./output || exit 1
+          for file in *.mmdb *.txt; do
+            [ -f "$file" ] && sha256sum ${file} > ${file}.sha256sum
+          done
 
-			- name: Git push assets to "release" branch
-				run: |
-					cd output || exit 1
-					git init
-					git config --local user.name "github-actions[bot]"
-					git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-					git checkout -b release
-					git add -A
-					git commit -m "${{ env.RELEASE_NAME }}" || exit 0
-					git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
-					git push -f -u origin release || exit 0
+      - name: Git push assets to "release" branch
+        run: |
+          cd ./output || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add -A
+          git commit -m "${{ env.RELEASE_NAME }}" || exit 0
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f -u origin release || exit 0
 
-			- name: Upload files to GitHub release
-				uses: softprops/action-gh-release@v1
-				with:
-					files: ./output/*
-					tag_name: ${{ env.TAG_NAME }}
-					name: ${{ env.RELEASE_NAME }}
-					draft: false
-					prerelease: false
-					generate_release_notes: false
-				env:
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload files to GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./output/*
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
