@@ -94,3 +94,9 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Purge jsDelivr cache
+        run: |
+          sleep 5
+          echo "Purging jsDelivr cache..."
+          curl -sS "https://purge.jsdelivr.net/gh/proxykeys/mmdbfilter@release" | python3 -m json.tool || true
